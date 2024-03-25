@@ -36,18 +36,18 @@ use std::io::{Read, Seek, Write};
 
 use serde::{Deserialize, Serialize};
 
-type TResult<T> = Result<T, Error>;
+pub type TResult<T> = Result<T, Error>;
 
-trait Readable<R: Read + Seek> {
+pub trait Readable<R: Read + Seek> {
     fn read(reader: &mut Context<R>) -> TResult<Self>
     where
         Self: Sized;
 }
-trait Writable<W> {
+pub trait Writable<W> {
     fn write(&self, writer: &mut Context<W>) -> TResult<()>;
 }
 
-struct SeekReader<R: Read> {
+pub struct SeekReader<R: Read> {
     reader: R,
     read_bytes: usize,
 }
@@ -77,14 +77,17 @@ impl<R: Read> Read for SeekReader<R> {
     }
 }
 
-fn read_optional_uuid<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Option<uuid::Uuid>> {
+pub fn read_optional_uuid<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Option<uuid::Uuid>> {
     Ok(if reader.read_u8()? > 0 {
         Some(uuid::Uuid::read(reader)?)
     } else {
         None
     })
 }
-fn write_optional_uuid<W: Write>(writer: &mut Context<W>, id: Option<uuid::Uuid>) -> TResult<()> {
+pub fn write_optional_uuid<W: Write>(
+    writer: &mut Context<W>,
+    id: Option<uuid::Uuid>,
+) -> TResult<()> {
     if let Some(id) = id {
         writer.write_u8(1)?;
         id.write(writer)?;
@@ -94,7 +97,7 @@ fn write_optional_uuid<W: Write>(writer: &mut Context<W>, id: Option<uuid::Uuid>
     Ok(())
 }
 
-fn read_string<R: Read + Seek>(reader: &mut Context<R>) -> TResult<String> {
+pub fn read_string<R: Read + Seek>(reader: &mut Context<R>) -> TResult<String> {
     let len = reader.read_i32::<LE>()?;
     if len < 0 {
         let chars = read_array((-len) as u32, reader, |r| Ok(r.read_u16::<LE>()?))?;
@@ -107,7 +110,7 @@ fn read_string<R: Read + Seek>(reader: &mut Context<R>) -> TResult<String> {
         Ok(String::from_utf8_lossy(&chars[..length]).into_owned())
     }
 }
-fn write_string<W: Write>(writer: &mut Context<W>, string: &str) -> TResult<()> {
+pub fn write_string<W: Write>(writer: &mut Context<W>, string: &str) -> TResult<()> {
     if string.is_empty() {
         writer.write_u32::<LE>(0)?;
     } else {
@@ -116,7 +119,10 @@ fn write_string<W: Write>(writer: &mut Context<W>, string: &str) -> TResult<()> 
     Ok(())
 }
 
-fn write_string_always_trailing<W: Write>(writer: &mut Context<W>, string: &str) -> TResult<()> {
+pub fn write_string_always_trailing<W: Write>(
+    writer: &mut Context<W>,
+    string: &str,
+) -> TResult<()> {
     if string.is_empty() || string.is_ascii() {
         writer.write_u32::<LE>(string.as_bytes().len() as u32 + 1)?;
         writer.write_all(string.as_bytes())?;
@@ -132,16 +138,16 @@ fn write_string_always_trailing<W: Write>(writer: &mut Context<W>, string: &str)
     Ok(())
 }
 
-type Properties = indexmap::IndexMap<String, Property>;
+pub type Properties = indexmap::IndexMap<String, Property>;
 
-fn read_properties_until_none<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Properties> {
+pub fn read_properties_until_none<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Properties> {
     let mut properties = Properties::new();
     while let Some((name, prop)) = read_property(reader)? {
         properties.insert(name, prop);
     }
     Ok(properties)
 }
-fn write_properties_none_terminated<W: Write>(
+pub fn write_properties_none_terminated<W: Write>(
     writer: &mut Context<W>,
     properties: &Properties,
 ) -> TResult<()> {
@@ -152,7 +158,9 @@ fn write_properties_none_terminated<W: Write>(
     Ok(())
 }
 
-fn read_property<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Option<(String, Property)>> {
+pub fn read_property<R: Read + Seek>(
+    reader: &mut Context<R>,
+) -> TResult<Option<(String, Property)>> {
     let name = read_string(reader)?;
     if name == "None" {
         Ok(None)
@@ -165,7 +173,10 @@ fn read_property<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Option<(Str
         })
     }
 }
-fn write_property<W: Write>(prop: (&String, &Property), writer: &mut Context<W>) -> TResult<()> {
+pub fn write_property<W: Write>(
+    prop: (&String, &Property),
+    writer: &mut Context<W>,
+) -> TResult<()> {
     write_string(writer, prop.0)?;
     prop.1.get_type().write(writer)?;
 
@@ -177,7 +188,11 @@ fn write_property<W: Write>(prop: (&String, &Property), writer: &mut Context<W>)
     Ok(())
 }
 
-fn read_array<T, F, R: Read + Seek>(length: u32, reader: &mut Context<R>, f: F) -> TResult<Vec<T>>
+pub fn read_array<T, F, R: Read + Seek>(
+    length: u32,
+    reader: &mut Context<R>,
+    f: F,
+) -> TResult<Vec<T>>
 where
     F: Fn(&mut Context<R>) -> TResult<T>,
 {
@@ -230,7 +245,7 @@ impl Types {
 }
 
 #[derive(Debug)]
-enum Scope<'p, 'n> {
+pub enum Scope<'p, 'n> {
     Root,
     Node {
         parent: &'p Scope<'p, 'p>,
@@ -250,11 +265,11 @@ impl<'p, 'n> Scope<'p, 'n> {
 }
 
 #[derive(Debug)]
-struct Context<'stream, 'header, 'types, 'scope, S> {
-    stream: &'stream mut S,
-    header: Option<&'header Header>,
-    types: &'types Types,
-    scope: &'scope Scope<'scope, 'scope>,
+pub struct Context<'stream, 'header, 'types, 'scope, S> {
+    pub stream: &'stream mut S,
+    pub header: Option<&'header Header>,
+    pub types: &'types Types,
+    pub scope: &'scope Scope<'scope, 'scope>,
 }
 impl<R: Read> Read for Context<'_, '_, '_, '_, R> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
@@ -276,7 +291,7 @@ impl<W: Write> Write for Context<'_, '_, '_, '_, W> {
 }
 
 impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'scope, S> {
-    fn run<F, T>(stream: &'stream mut S, f: F) -> T
+    pub fn run<F, T>(stream: &'stream mut S, f: F) -> T
     where
         F: FnOnce(&mut Context<'stream, '_, '_, 'scope, S>) -> T,
     {
@@ -287,7 +302,7 @@ impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'sco
             scope: &Scope::Root,
         })
     }
-    fn run_with_types<F, T>(types: &'types Types, stream: &'stream mut S, f: F) -> T
+    pub fn run_with_types<F, T>(types: &'types Types, stream: &'stream mut S, f: F) -> T
     where
         F: FnOnce(&mut Context<'stream, '_, 'types, 'scope, S>) -> T,
     {
@@ -298,7 +313,7 @@ impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'sco
             scope: &Scope::Root,
         })
     }
-    fn scope<'name, F, T>(&mut self, name: &'name str, f: F) -> T
+    pub fn scope<'name, F, T>(&mut self, name: &'name str, f: F) -> T
     where
         F: FnOnce(&mut Context<'_, '_, 'types, '_, S>) -> T,
     {
@@ -312,7 +327,7 @@ impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'sco
             },
         })
     }
-    fn header<'h, F, T>(&mut self, header: &'h Header, f: F) -> T
+    pub fn header<'h, F, T>(&mut self, header: &'h Header, f: F) -> T
     where
         F: FnOnce(&mut Context<'_, '_, 'types, '_, S>) -> T,
     {
@@ -323,7 +338,7 @@ impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'sco
             scope: self.scope,
         })
     }
-    fn stream<'s, F, T, S2>(&mut self, stream: &'s mut S2, f: F) -> T
+    pub fn stream<'s, F, T, S2>(&mut self, stream: &'s mut S2, f: F) -> T
     where
         F: FnOnce(&mut Context<'_, '_, 'types, '_, S2>) -> T,
     {
@@ -334,17 +349,17 @@ impl<'stream, 'header, 'types, 'scope, S> Context<'stream, 'header, 'types, 'sco
             scope: self.scope,
         })
     }
-    fn path(&self) -> String {
+    pub fn path(&self) -> String {
         self.scope.path()
     }
-    fn get_type(&self) -> Option<&'types StructType> {
+    pub fn get_type(&self) -> Option<&'types StructType> {
         self.types.types.get(&self.path())
     }
 }
 impl<'stream, 'header, 'types, 'scope, R: Read + Seek>
     Context<'stream, 'header, 'types, 'scope, R>
 {
-    fn get_type_or<'t>(&mut self, t: &'t StructType) -> TResult<&'t StructType>
+    pub fn get_type_or<'t>(&mut self, t: &'t StructType) -> TResult<&'t StructType>
     where
         'types: 't,
     {
