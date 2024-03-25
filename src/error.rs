@@ -1,7 +1,7 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("bad magic value (GVAS)")]
-    BadMagic(),
+    #[error("bad magic value: {0}")]
+    BadMagic(String),
     #[error("unknown property type: {0}")]
     UnknownPropertyType(String),
     #[error("unknown PropertyMeta type: {0}")]
