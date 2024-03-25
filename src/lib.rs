@@ -738,8 +738,8 @@ pub struct Quat {
     pub w: f64,
 }
 impl Quat {
-    fn read<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Self> {
-        if reader.header.as_ref().unwrap().large_world_coordinates() {
+    pub fn read<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Self> {
+        if reader.header.is_some_and(|h| h.large_world_coordinates()) {
             Ok(Self {
                 x: reader.read_f64::<LE>()?,
                 y: reader.read_f64::<LE>()?,
@@ -755,8 +755,8 @@ impl Quat {
             })
         }
     }
-    fn write<W: Write>(&self, writer: &mut Context<W>) -> TResult<()> {
-        if writer.header.as_ref().unwrap().large_world_coordinates() {
+    pub fn write<W: Write>(&self, writer: &mut Context<W>) -> TResult<()> {
+        if writer.header.is_some_and(|h| h.large_world_coordinates()) {
             writer.write_f64::<LE>(self.x)?;
             writer.write_f64::<LE>(self.y)?;
             writer.write_f64::<LE>(self.z)?;
@@ -778,7 +778,7 @@ pub struct Rotator {
 }
 impl Rotator {
     fn read<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Self> {
-        if reader.header.as_ref().unwrap().large_world_coordinates() {
+        if reader.header.is_some_and(|h| h.large_world_coordinates()) {
             Ok(Self {
                 x: reader.read_f64::<LE>()?,
                 y: reader.read_f64::<LE>()?,
@@ -793,7 +793,7 @@ impl Rotator {
         }
     }
     fn write<W: Write>(&self, writer: &mut Context<W>) -> TResult<()> {
-        if writer.header.as_ref().unwrap().large_world_coordinates() {
+        if writer.header.is_some_and(|h| h.large_world_coordinates()) {
             writer.write_f64::<LE>(self.x)?;
             writer.write_f64::<LE>(self.y)?;
             writer.write_f64::<LE>(self.z)?;
@@ -836,8 +836,8 @@ pub struct Vector {
     pub z: f64,
 }
 impl Vector {
-    fn read<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Self> {
-        if reader.header.as_ref().unwrap().large_world_coordinates() {
+    pub fn read<R: Read + Seek>(reader: &mut Context<R>) -> TResult<Self> {
+        if reader.header.is_some_and(|h| h.large_world_coordinates()) {
             Ok(Self {
                 x: reader.read_f64::<LE>()?,
                 y: reader.read_f64::<LE>()?,
@@ -851,8 +851,8 @@ impl Vector {
             })
         }
     }
-    fn write<W: Write>(&self, writer: &mut Context<W>) -> TResult<()> {
-        if writer.header.as_ref().unwrap().large_world_coordinates() {
+    pub fn write<W: Write>(&self, writer: &mut Context<W>) -> TResult<()> {
+        if writer.header.is_some_and(|h| h.large_world_coordinates()) {
             writer.write_f64::<LE>(self.x)?;
             writer.write_f64::<LE>(self.y)?;
             writer.write_f64::<LE>(self.z)?;
