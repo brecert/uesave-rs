@@ -53,7 +53,7 @@ pub struct SeekReader<R: Read> {
 }
 
 impl<R: Read> SeekReader<R> {
-    fn new(reader: R) -> Self {
+    pub fn new(reader: R) -> Self {
         Self {
             reader,
             read_bytes: 0,
@@ -493,6 +493,7 @@ pub enum StructType {
     Color,
     SoftObjectPath,
     GameplayTagContainer,
+    WorkshopFile,
     Struct(Option<String>),
 }
 impl From<&str> for StructType {
@@ -512,6 +513,7 @@ impl From<&str> for StructType {
             "Color" => StructType::Color,
             "SoftObjectPath" => StructType::SoftObjectPath,
             "GameplayTagContainer" => StructType::GameplayTagContainer,
+            "WorkshopFile" => StructType::WorkshopFile,
             "Struct" => StructType::Struct(None),
             _ => StructType::Struct(Some(t.to_owned())),
         }
@@ -534,6 +536,7 @@ impl From<String> for StructType {
             "Color" => StructType::Color,
             "SoftObjectPath" => StructType::SoftObjectPath,
             "GameplayTagContainer" => StructType::GameplayTagContainer,
+            "WorkshopFile" => StructType::WorkshopFile,
             "Struct" => StructType::Struct(None),
             _ => StructType::Struct(Some(t)),
         }
@@ -561,6 +564,7 @@ impl StructType {
                 StructType::Color => "Color",
                 StructType::SoftObjectPath => "SoftObjectPath",
                 StructType::GameplayTagContainer => "GameplayTagContainer",
+                StructType::WorkshopFile => "WorkshopFile",
                 StructType::Struct(Some(t)) => t,
                 _ => unreachable!(),
             },
@@ -1355,6 +1359,7 @@ pub enum StructValue {
     Rotator(Rotator),
     SoftObjectPath(String, String),
     GameplayTagContainer(GameplayTagContainer),
+    WorkshopFile(u64),
     /// User defined struct which is simply a list of properties
     Struct(Properties),
 }
@@ -1484,7 +1489,8 @@ impl StructValue {
             }
             StructType::GameplayTagContainer => {
                 StructValue::GameplayTagContainer(GameplayTagContainer::read(reader)?)
-            }
+            },
+            StructType::WorkshopFile => StructValue::WorkshopFile(reader.read_u64::<LE>()?),
 
             StructType::Struct(_) => StructValue::Struct(read_properties_until_none(reader)?),
         })
@@ -1508,6 +1514,7 @@ impl StructValue {
                 write_string(writer, b)?;
             }
             StructValue::GameplayTagContainer(v) => v.write(writer)?,
+            StructValue::WorkshopFile(v) => writer.write_u64::<LE>(*v)?,
             StructValue::Struct(v) => write_properties_none_terminated(writer, v)?,
         }
         Ok(())

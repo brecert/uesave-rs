@@ -15,7 +15,7 @@ pub enum Error {
 }
 
 #[derive(thiserror::Error, Debug)]
-#[error("at offset {offset}: {error}")]
+#[error("at offset 0x{offset:x}: {error}")]
 pub struct ParseError {
     pub offset: usize,
     pub error: Error,
